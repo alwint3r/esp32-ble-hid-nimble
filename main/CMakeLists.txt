@@ -1,2 +1,2 @@
-idf_component_register(SRCS "idf-ble-keyboard.c"
+idf_component_register(SRCS "main.c"
                     INCLUDE_DIRS ".")
