@@ -1,12 +1,12 @@
 #include "gap.h"
 
 #include <string.h>
-#include "host/util/util.h"
 
 #include "ble_battery.h"
 #include "ble_device_info.h"
 #include "ble_hid.h"
 #include "host/ble_gap.h"
+#include "host/util/util.h"
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
 
@@ -51,9 +51,13 @@ int gap_init(const char* device_name) {
 static void start_advertising(void) {
   struct ble_hs_adv_fields fields = {0};
   fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
-  fields.name = (uint8_t*)ble_svc_gap_device_name() ;
+  fields.name = (uint8_t*)ble_svc_gap_device_name();
   fields.name_len = strlen(ble_svc_gap_device_name());
   fields.name_is_complete = 1;
+  fields.appearance = 961;
+  fields.appearance_is_present = 1;
+  fields.le_role = 0x00;
+  fields.le_role_is_present = 1;
 
   ble_gap_adv_set_fields(&fields);
 

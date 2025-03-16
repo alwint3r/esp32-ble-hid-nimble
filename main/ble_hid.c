@@ -35,7 +35,6 @@ static int hid_protocol_mode_access(uint16_t conn_handle, uint16_t attr_handle,
                                     void* arg);
 
 static uint16_t input_report_chr_handle;
-static uint16_t output_report_chr_handle;
 
 static const struct ble_gatt_svc_def hid_defs[] = {
     {
@@ -96,7 +95,7 @@ static const struct ble_gatt_svc_def hid_defs[] = {
                     .access_cb = &hid_output_report_access,
                     .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE |
                              BLE_GATT_CHR_F_WRITE_NO_RSP,
-                    .val_handle = &output_report_chr_handle,
+                    .val_handle = NULL,
                     .arg = NULL,
                     .descriptors =
                         (struct ble_gatt_dsc_def[]){
@@ -105,7 +104,7 @@ static const struct ble_gatt_svc_def hid_defs[] = {
                                     BLE_REPORT_DESCRIPTOR_UUID),
                                 .access_cb = &hid_output_report_dsc_access,
                                 .att_flags = BLE_ATT_F_READ,
-                                .arg = &output_report_chr_handle,
+                                .arg = NULL,
                             },
                             {0},
                         },
@@ -251,6 +250,13 @@ static int hid_report_map_access(uint16_t conn_handle, uint16_t attr_handle,
 static int hid_control_point_access(uint16_t conn_handle, uint16_t attr_handle,
                                     struct ble_gatt_access_ctxt* ctxt,
                                     void* arg) {
+  if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR) {
+    ESP_LOGI(TAG, "Accessing HID control point (op=%d)", ctxt->op);
+    ESP_LOGI(TAG, "Writing HID control point (op=%d) %d bytes", ctxt->op,
+             (int)ctxt->om->om_len);
+    ESP_LOG_BUFFER_HEX(TAG, ctxt->om->om_data, ctxt->om->om_len);
+    return 0;
+  }
   return 0;
 }
 static int hid_input_report_access(uint16_t conn_handle, uint16_t attr_handle,
@@ -284,13 +290,14 @@ static int hid_input_report_dsc_access(uint16_t conn_handle,
 
   if (uuid->value == BLE_CCCD_DESCRIPTOR_UUID) {
     if (ctxt->op == BLE_GATT_ACCESS_OP_READ_DSC) {
-      ESP_LOGI(TAG, "Reading input report descriptor (op=%d)", ctxt->op);
+      ESP_LOGI(TAG, "Reading input report cccd descriptor (op=%d)", ctxt->op);
       int rc = os_mbuf_append(ctxt->om, &input_report_cccd,
                               sizeof(input_report_cccd));
       if (rc != 0) {
-        ESP_LOGE(TAG,
-                 "Failed to append input report descriptor, error code: %d",
-                 rc);
+        ESP_LOGE(
+            TAG,
+            "Failed to append input report cccd descriptor, error code: %d",
+            rc);
         return rc;
       }
       ESP_LOGI(TAG, "Input report descriptor read successfully");
@@ -324,6 +331,7 @@ static int hid_output_report_access(uint16_t conn_handle, uint16_t attr_handle,
   if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR) {
     ESP_LOGI(TAG, "Writing output report (op=%d) %d bytes", ctxt->op,
              (int)ctxt->om->om_len);
+    ESP_LOG_BUFFER_HEX(TAG, ctxt->om->om_data, ctxt->om->om_len);
     return 0;
   }
 
