@@ -1,31 +1,21 @@
+#include "ble_module.h"
+
 #include "gap.h"
 #include "host/ble_gap.h"
 #include "host/ble_uuid.h"
 #include "nimble/ble.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
-#include "nvs_flash.h"
 
-// somehow needed this declaration because
-// it was declared nowhere else
+static const char* TAG = "BLE_MODULE";
+static const char* DEVICE_NAME = "M5STICK-C";
+
 void ble_store_config_init(void);
 static void ble_host_task(void* param);
 static void ble_on_stack_sync(void);
 static void ble_on_stack_reset(int reason);
 
-static const char* TAG = "BLE_KEYBOARD_C";
-static const char* DEVICE_NAME = "M5STICK-C";
-
-void app_main() {
-  esp_err_t err = nvs_flash_init();
-  if (err == ESP_ERR_NVS_NEW_VERSION_FOUND ||
-      err == ESP_ERR_NVS_NO_FREE_PAGES) {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    err = nvs_flash_init();
-  }
-
-  ESP_ERROR_CHECK(err);
-
+void ble_module_init(void) {
   ESP_ERROR_CHECK(nimble_port_init());
   int rc = gap_init(DEVICE_NAME);
   if (rc != 0) {

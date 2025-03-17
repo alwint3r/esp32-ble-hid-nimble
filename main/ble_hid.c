@@ -138,7 +138,7 @@ static const uint8_t report_map[] = {
     0xA1, 0x01,  // Collection (Application)
 
     // Report ID (if multiple reports)
-    0x85, 0x01,  // Report ID (1)
+    0x85, BLE_HID_DEFAULT_REPORT_ID,  // Report ID (1)
 
     // Modifier Keys (Shift, Ctrl, Alt, GUI)
     0x05, 0x07,  // Usage Page (Key Codes)

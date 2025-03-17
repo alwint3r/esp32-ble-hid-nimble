@@ -1,6 +1,9 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
+
+#define BLE_HID_DEFAULT_REPORT_ID 0x01
 
 #define BLE_HID_SERVICE_UUID 0x1812
 #define BLE_HID_INFO_UUID 0x2A4A
@@ -34,3 +37,13 @@ typedef enum {
 } ble_hid_protocol_mode_t;
 
 int ble_hid_init(void);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int ble_hid_send_report(uint8_t report_id, const uint8_t* data, size_t length);
+
+#ifdef __cplusplus
+}
+#endif
