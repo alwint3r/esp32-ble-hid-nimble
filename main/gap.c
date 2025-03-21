@@ -49,25 +49,58 @@ int gap_init(const char* device_name) {
 }
 
 static void start_advertising(void) {
+  // First set up advertising data fields
   struct ble_hs_adv_fields fields = {0};
   fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
-  fields.name = (uint8_t*)ble_svc_gap_device_name();
-  fields.name_len = strlen(ble_svc_gap_device_name());
-  fields.name_is_complete = 1;
-  fields.appearance = 961;
+  fields.tx_pwr_lvl_is_present = 1;
+  fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
+
+  // Set up appearance
+  fields.appearance = 0x03C1;
   fields.appearance_is_present = 1;
-  fields.le_role = 0x00;
-  fields.le_role_is_present = 1;
 
-  ble_gap_adv_set_fields(&fields);
+  ble_uuid16_t services[] = {
+      {
+          .u =
+              {
+                  .type = BLE_UUID_TYPE_16,
+              },
+          .value = BLE_HID_SERVICE_UUID,
+      },
+  };
 
+  fields.uuids16 = services;
+  fields.num_uuids16 = sizeof(services) / sizeof(services[0]);
+  fields.uuids16_is_complete = 1;
+
+  // Configure advertising data
+  int rc = ble_gap_adv_set_fields(&fields);
+  if (rc != 0) {
+    ESP_LOGE(TAG, "Error setting advertisement data; rc=%d", rc);
+    return;
+  }
+
+  // Set up scan response fields with the device name
+  struct ble_hs_adv_fields rsp_fields = {0};
+  rsp_fields.name = (uint8_t*)ble_svc_gap_device_name();
+  rsp_fields.name_len = strlen(ble_svc_gap_device_name());
+  rsp_fields.name_is_complete = 1;
+
+  // Set scan response data
+  rc = ble_gap_adv_rsp_set_fields(&rsp_fields);
+  if (rc != 0) {
+    ESP_LOGE(TAG, "Error setting scan response data; rc=%d", rc);
+    return;
+  }
+
+  // Start advertising
   struct ble_gap_adv_params adv_params = {
       .conn_mode = BLE_GAP_CONN_MODE_UND,
       .disc_mode = BLE_GAP_DISC_MODE_GEN,
   };
 
-  int rc = ble_gap_adv_start(BLE_ADDR_PUBLIC, NULL, BLE_HS_FOREVER, &adv_params,
-                             gap_event_handler, NULL);
+  rc = ble_gap_adv_start(BLE_ADDR_PUBLIC, NULL, BLE_HS_FOREVER, &adv_params,
+                         gap_event_handler, NULL);
   if (rc != 0) {
     ESP_LOGE(TAG, "Failed to start advertising; rc=%d", rc);
   } else {
@@ -95,6 +128,13 @@ int gap_event_handler(struct ble_gap_event* event, void* arg) {
       ESP_LOGI(TAG, "Connection established, status=%d", event->connect.status);
       if (event->connect.status == 0) {
         conn_handle = event->connect.conn_handle;
+      }
+
+      rc = ble_gap_security_initiate(conn_handle);
+      if (rc != 0) {
+        ESP_LOGE(TAG, "Failed to initiate security, error code: %d", rc);
+      } else {
+        ESP_LOGI(TAG, "Security initiated");
       }
       break;
     case BLE_GAP_EVENT_DISCONNECT:
@@ -131,12 +171,6 @@ int gap_event_handler(struct ble_gap_event* event, void* arg) {
 
       if (!desc.sec_state.encrypted) {
         ESP_LOGI(TAG, "Not encrypted, ignoring subscribe event");
-        rc = ble_gap_security_initiate(conn_handle);
-        if (rc != 0) {
-          ESP_LOGE(TAG, "Failed to initiate security, error code: %d", rc);
-        } else {
-          ESP_LOGI(TAG, "Security initiated");
-        }
       }
       break;
     default:
