@@ -10,11 +10,11 @@ struct BLE {
   }
 
   Host* host();
-
-  static GAP& gap() { return GAP::instance(); }
+  GAP* gap();
 
  private:
   std::unique_ptr<Host> host_{nullptr};
+  std::unique_ptr<GAP> gap_{nullptr};
 
  private:
   BLE() = default;
